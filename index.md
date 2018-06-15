@@ -1,37 +1,8 @@
-## Welcome to GitHub Pages
+## 介紹
+<b>提供:</b> 拜神佛、祭先祖、供養神佛、聽佛咒神佛聖號、閱讀經文、求籤功能。
 
-You can use the [editor on GitHub](https://github.com/danielcdcj/Game_ChineseAltar_ProductPage/edit/master/index.md) to maintain and preview the content for your website in Markdown files.
+無須舟車勞頓遠行，每天可用隨身行動裝置來在線供奉，上香、拜佛、禮佛、求神、聽經、祈福許願、懺悔發願、回向皈依等。讓我們在忙碌的工作、緊湊的生活之餘，以及多變的社會環境下，尋得片刻安寧與一方淨土，靜求神佛和祖先的保佑，增添人生福運，實現心中美好的想望。
+請廣傳分享供奉神佛，教化世人，功德無量。願您吉祥如意，平安幸福。
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
-
-### Markdown
-
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/danielcdcj/Game_ChineseAltar_ProductPage/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+## 聯繫我們
+如有任何應用相關問題，請聯絡我們： utoappia@gmail.com
