@@ -4,7 +4,7 @@
 
 Chrono acupuncture is a branch of acupuncture in Traditional Chinese Medicine that manifests the rhythmic flow of Qi in human meridians and provides the best point selections for maintaining the flow of Qi in human body.
 
-## 隱私 / Privbacy Police
+## 隱私 / Privbacy Policy
 本應用不收集任何使用者資訊。
 This application does not collect any user information
 
