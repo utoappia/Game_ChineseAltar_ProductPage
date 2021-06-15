@@ -1,11 +1,12 @@
-## 介紹
-<b>提供:</b> 拜神佛、祭先祖、供養神佛、聽佛咒神佛聖號、閱讀經文、求籤功能。
+## 介紹 / About
 
-無須舟車勞頓遠行，每天可用隨身行動裝置來在線供奉，上香、拜佛、禮佛、求神、聽經、祈福許願、懺悔發願、回向皈依等。讓我們在忙碌的工作、緊湊的生活之餘，以及多變的社會環境下，尋得片刻安寧與一方淨土，靜求神佛和祖先的保佑，增添人生福運，實現心中美好的想望。
-請廣傳分享供奉神佛，教化世人，功德無量。願您吉祥如意，平安幸福。
+本軟體的功能包括靈龜八法、飛騰八法、子午流注納子法及子午流注納甲法的即時和擇時開穴。
 
-## 隱私
+Chrono acupuncture is a branch of acupuncture in Traditional Chinese Medicine that manifests the rhythmic flow of Qi in human meridians and provides the best point selections for maintaining the flow of Qi in human body.
+
+## 隱私 / Privbacy Police
 本應用不收集任何使用者資訊。
+This application does not collect any user information
 
-## 聯繫我們
-如有任何應用相關問題，請聯絡我們： utoappia@gmail.com
+## 聯繫我們 / Contact Us
+utoappia@gmail.com
