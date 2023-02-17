@@ -10,7 +10,8 @@
   1. 粗略位置
   2. App商品購買紀錄
   3. 機器的 ID
-  請查看:
+  
+請查看:
     - [安卓 Google Play - Unity 的數據安全解說](https://docs.unity.com/ads/zh-cn/manual/GoogleDataSafety)
     - [蘋果 iOS - Unity 的數據安全解說](https://docs.unity.com/ads/en/manual/ApplePrivacySurvey)
   
