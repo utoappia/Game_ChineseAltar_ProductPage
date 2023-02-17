@@ -12,8 +12,8 @@
   3. 機器的 ID
   
 請查看:
-    - [安卓 Google Play - Unity 的數據安全解說](https://docs.unity.com/ads/zh-cn/manual/GoogleDataSafety)
-    - [蘋果 iOS - Unity 的數據安全解說](https://docs.unity.com/ads/en/manual/ApplePrivacySurvey)
+  - [安卓 Google Play - Unity 的數據安全解說](https://docs.unity.com/ads/zh-cn/manual/GoogleDataSafety)
+  - [蘋果 iOS - Unity 的數據安全解說](https://docs.unity.com/ads/en/manual/ApplePrivacySurvey)
   
 
 ## 聯繫我們
