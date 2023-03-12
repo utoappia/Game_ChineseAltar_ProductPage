@@ -16,7 +16,9 @@
 請查看:
   - [安卓 Google Play - Unity 的數據安全解說](https://docs.unity.com/ads/zh-cn/manual/GoogleDataSafety)
   - [蘋果 iOS - Unity 的數據安全解說](https://docs.unity.com/ads/zh-cn/manual/ApplePrivacySurvey)
-  
+
+## 帳戶資料
+您可以刪除帳戶資料：在主畫面中選取「我的帳戶」並在下方按下「刪除帳戶」。
 
 ## 聯繫我們
 如有任何應用相關問題，請聯絡我們：[utoappia@gmail.com](mailto:utoappia@gmail.com?subject=%E9%97%9C%E6%96%BC%20%E5%BF%83%E8%AA%A0%E5%89%87%E9%9D%88%20APP)
