@@ -1,5 +1,9 @@
 # 心誠則靈
 
+## 下載
+ - [蘋果 iOS](https://apps.apple.com/app/%E5%BF%83%E8%AA%A0%E5%89%87%E9%9D%88/id1399972449)
+ - [安卓 Google Play](https://play.google.com/store/apps/details?id=com.utoappia.worshipapp)
+
 ## 介紹
 <b>提供:</b> 拜神佛、祭先祖、供養神佛、聽佛咒神佛聖號、閱讀經文、求籤功能。
 
