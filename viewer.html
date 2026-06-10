@@ -337,17 +337,32 @@ function renderLantern(encoded) {
     ctx.fillStyle = 'rgba(255,250,225,0.95)';
     ctx.beginPath(); ctx.arc(0, flameY, baseScale * 0.12 * flicker, 0, Math.PI * 2); ctx.fill();
 
-    // 祈願文 — vertical column over the lantern front; font shrinks for
-    // longer wishes so the column always fits on the lantern body.
-    if (data.wish) {
+    // 祈願文 — brush-written ON face 0 (like a real 天燈): each character is
+    // anchored on the face and projected like the strokes, so the writing
+    // turns with the lantern and hides when the face turns away.
+    const wishFacing = Math.max(0, Math.cos(yaw));
+    if (data.wish && wishFacing > 0.05) {
       const chars = [...data.wish];
       const fs = Math.min(baseScale * 0.22, (L_H * baseScale * 0.72) / (1.12 * chars.length));
       ctx.font = '600 ' + fs + 'px "PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif';
       ctx.fillStyle = 'rgba(112,30,20,0.92)';
       ctx.textAlign = 'center';
+      ctx.globalAlpha = Math.min(1, wishFacing * 1.4);
       chars.forEach((ch, i) => {
-        ctx.fillText(ch, 0, baseScale * 0.3 + (i + 1) * fs * 1.12);
+        const stepV = (fs * 1.12) / (L_H * baseScale);
+        const v = 0.16 + (i + 0.5) * stepV;
+        const c = lanternProject(0, 0.5, v, yaw);
+        const l = lanternProject(0, 0.4, v, yaw);
+        const r = lanternProject(0, 0.6, v, yaw);
+        const headOn = 0.2 * 2 * lanternHalfAt(v);
+        const scaleX = Math.max(0.05, Math.hypot(r.x - l.x, r.y - l.y) / headOn);
+        ctx.save();
+        ctx.translate(c.x * baseScale, c.y * baseScale);
+        ctx.scale(scaleX, 1);
+        ctx.fillText(ch, 0, fs * 0.36);
+        ctx.restore();
       });
+      ctx.globalAlpha = 1;
     }
 
     ctx.restore();
