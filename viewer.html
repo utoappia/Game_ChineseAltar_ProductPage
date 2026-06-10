@@ -164,15 +164,194 @@ function showCard(emoji, title, text) {
 
 // ── content renderers ──────────────────────────────────────────────────────
 
-/** 天燈 — sky lantern (renderer lands together with the app feature). */
+// ── 天燈 (sky lantern) ──────────────────────────────────────────────────────
+// Decodes the stroke blob and renders the floating lantern on a Canvas2D —
+// a hand port of the app's renderer (src/components/lantern/geometry.ts +
+// LanternFlight.tsx). Keep the constants in sync with the app.
+
+const LANTERN_BRUSH_COLORS = ['#c0392b', '#222222', '#d9912f', '#2e7d32', '#a64ca6', '#2456a6'];
+const LANTERN_PAPER_COLORS = ['#e8a33d'];
+const L_TOP = 1.0, L_BOT = 0.62, L_H = 1.5, L_OPEN = 0.5, L_FOCAL = 5;
+
+/** Blob v1: ver(1) flags(1) paper(1) wishLen(1) wish strokeCount(2)
+ *  per stroke [face<<6|color (1) count(2) points u,v (1B each)] */
+function decodeLanternBlob(encoded) {
+  const body = checkedPayload(decodeBase64url(encoded));
+  if (!body || body[0] !== 1) return null;
+  let i = 1;
+  i++; // flags
+  const paperColor = body[i++];
+  const wishLen = body[i++];
+  if (i + wishLen > body.length) return null;
+  const wish = wishLen ? new TextDecoder().decode(body.subarray(i, i + wishLen)) : '';
+  i += wishLen;
+  if (i + 2 > body.length) return null;
+  const strokeCount = (body[i] << 8) | body[i + 1];
+  i += 2;
+  const strokes = [];
+  for (let s = 0; s < strokeCount; s++) {
+    if (i + 3 > body.length) return null;
+    const fc = body[i++];
+    const count = (body[i] << 8) | body[i + 1];
+    i += 2;
+    if (i + count * 2 > body.length) return null;
+    const points = [];
+    for (let p = 0; p < count; p++) { points.push({ u: body[i] / 255, v: body[i + 1] / 255 }); i += 2; }
+    strokes.push({ face: (fc >> 6) & 3, color: fc & 63, points });
+  }
+  return { strokes, wish, paperColor };
+}
+
+function lanternHalfAt(v) { return L_TOP + (L_BOT - L_TOP) * v; }
+function lanternProject(face, u, v, yaw) {
+  const h = lanternHalfAt(v);
+  const lx = (2 * u - 1) * h, lz = h;
+  const a = yaw + (face * Math.PI) / 2;
+  const cos = Math.cos(a), sin = Math.sin(a);
+  const x = lx * cos + lz * sin, z = -lx * sin + lz * cos;
+  const s = L_FOCAL / (L_FOCAL - z);
+  return { x: x * s, y: v * L_H * s };
+}
+function lanternFacing(face, yaw) { return Math.cos(yaw + (face * Math.PI) / 2); }
+function lanternShade(hex, brightness, warmth) {
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  const warm = (c, w) => c + (w - c) * warmth;
+  return 'rgb(' + Math.round(Math.min(255, warm(r, 255) * brightness)) + ',' +
+    Math.round(Math.min(255, warm(g, 214) * brightness)) + ',' +
+    Math.round(Math.min(255, warm(b, 120) * brightness)) + ')';
+}
+
 function renderLantern(encoded) {
-  const payload = checkedPayload(decodeBase64url(encoded));
-  if (!payload) {
-    showCard('🏮', '連結無法讀取', '這個天燈連結似乎不完整，請重新複製完整網址再試一次。');
+  const data = decodeLanternBlob(encoded);
+  if (!data) {
+    showCard('🏮', '連結無法讀取', '這個天燈連結似乎不完整或已損毀，請重新複製完整網址再試一次。');
     return;
   }
-  // TODO(lantern): decode strokes + wish text and render the floating lantern.
-  showCard('🏮', '天燈即將升空', '此檢視器版本尚未支援這盞天燈，請稍後再來，或下載 App 觀看。');
+  const stage = document.getElementById('stage');
+  const wishLine = data.wish
+    ? '<p style="font-size:18px;color:var(--red-deep);letter-spacing:.12em;margin-top:14px;">「' + data.wish.replace(/[<>&]/g, '') + '」</p>'
+    : '';
+  stage.innerHTML =
+    '<div class="card" style="padding:18px 14px 26px;">' +
+    '<canvas id="lantern-canvas" style="width:100%;max-width:420px;border-radius:12px;"></canvas>' +
+    wishLine +
+    '<p style="margin-top:10px;">有人為你放了一盞天燈 🏮</p>' +
+    storeRow() +
+    '</div>';
+
+  const canvas = document.getElementById('lantern-canvas');
+  const cssW = Math.min(420, canvas.parentElement.clientWidth - 28);
+  const cssH = Math.round(cssW * 1.35);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  canvas.width = cssW * dpr;
+  canvas.height = cssH * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const paper = LANTERN_PAPER_COLORS[data.paperColor] || LANTERN_PAPER_COLORS[0];
+  const baseScale = cssW * 0.34;
+  const start = performance.now();
+
+  function frame(nowMs) {
+    const t = (nowMs - start) / 1000;
+    const yaw = 0.32 * Math.sin(t * 0.35) + t * 0.06;
+    const flicker = 1 + 0.1 * Math.sin(t * 13) + 0.06 * Math.sin(t * 29 + 1.7);
+    const cx = cssW / 2 + Math.sin(t * 0.55) * cssW * 0.03;
+    const cy = cssH * 0.22 + Math.sin(t * 0.8) * cssH * 0.01;
+
+    // dusk sky
+    const sky = ctx.createLinearGradient(0, 0, 0, cssH);
+    sky.addColorStop(0, '#2b3a67'); sky.addColorStop(0.55, '#7c5a8c'); sky.addColorStop(1, '#e8a07a');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, cssW, cssH);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // halo
+    const haloY = L_H * baseScale * 0.6;
+    const halo = ctx.createRadialGradient(0, haloY, 0, 0, haloY, baseScale * 2.1);
+    halo.addColorStop(0, 'rgba(255,196,110,0.28)'); halo.addColorStop(1, 'rgba(255,196,110,0)');
+    ctx.fillStyle = halo;
+    ctx.fillRect(-baseScale * 2.2, haloY - baseScale * 2.2, baseScale * 4.4, baseScale * 4.4);
+
+    // faces back-to-front, then their strokes
+    const faces = [0, 1, 2, 3].filter((f) => lanternFacing(f, yaw) > 0.02)
+      .sort((a, b) => lanternFacing(a, yaw) - lanternFacing(b, yaw));
+    for (const f of faces) {
+      const q = [
+        lanternProject(f, 0, 0, yaw), lanternProject(f, 1, 0, yaw),
+        lanternProject(f, 1, 1, yaw), lanternProject(f, 0, 1, yaw),
+      ];
+      ctx.beginPath();
+      q.forEach((p, i) => (i ? ctx.lineTo(p.x * baseScale, p.y * baseScale) : ctx.moveTo(p.x * baseScale, p.y * baseScale)));
+      ctx.closePath();
+      const brightness = Math.max(0, lanternFacing(f, yaw)) * 0.45 + 0.55;
+      ctx.fillStyle = lanternShade(paper, brightness, 0.35);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(120,70,20,0.35)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // strokes on this face
+      ctx.lineWidth = L_H * baseScale * 0.022;
+      ctx.lineCap = ctx.lineJoin = 'round';
+      for (const s of data.strokes) {
+        if (s.face !== f || s.points.length < 2) continue;
+        ctx.beginPath();
+        s.points.forEach((pt, i) => {
+          const p = lanternProject(f, pt.u, pt.v, yaw);
+          if (i) ctx.lineTo(p.x * baseScale, p.y * baseScale);
+          else ctx.moveTo(p.x * baseScale, p.y * baseScale);
+        });
+        ctx.globalAlpha = 0.9;
+        ctx.strokeStyle = LANTERN_BRUSH_COLORS[s.color] || LANTERN_BRUSH_COLORS[0];
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // bottom opening + flame
+    ctx.beginPath();
+    for (let i = 0; i < 20; i++) {
+      const a = (i / 20) * Math.PI * 2;
+      const px = Math.cos(a) * L_OPEN, pz = Math.sin(a) * L_OPEN;
+      const cos = Math.cos(yaw), sin = Math.sin(yaw);
+      const x = px * cos + pz * sin, z = -px * sin + pz * cos;
+      const s = L_FOCAL / (L_FOCAL - z);
+      const X = x * s * baseScale, Y = L_H * s * baseScale;
+      if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(40,18,4,0.88)';
+    ctx.fill();
+    const flameY = L_H * baseScale * 0.97;
+    const fr = baseScale * 0.34 * flicker;
+    const flame = ctx.createRadialGradient(0, flameY, 0, 0, flameY, fr);
+    flame.addColorStop(0, 'rgba(255,232,170,0.95)');
+    flame.addColorStop(0.5, 'rgba(255,150,40,0.55)');
+    flame.addColorStop(1, 'rgba(255,120,20,0)');
+    ctx.fillStyle = flame;
+    ctx.beginPath(); ctx.arc(0, flameY, fr, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,250,225,0.95)';
+    ctx.beginPath(); ctx.arc(0, flameY, baseScale * 0.12 * flicker, 0, Math.PI * 2); ctx.fill();
+
+    // 祈願文 — vertical column over the lantern front
+    if (data.wish) {
+      const fs = baseScale * 0.22;
+      ctx.font = '600 ' + fs + 'px "PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif';
+      ctx.fillStyle = 'rgba(112,30,20,0.92)';
+      ctx.textAlign = 'center';
+      [...data.wish].forEach((ch, i) => {
+        ctx.fillText(ch, 0, baseScale * 0.34 + i * fs * 1.12);
+      });
+    }
+
+    ctx.restore();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 }
 
 /** type key in the URL fragment → renderer. */
