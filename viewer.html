@@ -337,14 +337,16 @@ function renderLantern(encoded) {
     ctx.fillStyle = 'rgba(255,250,225,0.95)';
     ctx.beginPath(); ctx.arc(0, flameY, baseScale * 0.12 * flicker, 0, Math.PI * 2); ctx.fill();
 
-    // 祈願文 — vertical column over the lantern front
+    // 祈願文 — vertical column over the lantern front; font shrinks for
+    // longer wishes so the column always fits on the lantern body.
     if (data.wish) {
-      const fs = baseScale * 0.22;
+      const chars = [...data.wish];
+      const fs = Math.min(baseScale * 0.22, (L_H * baseScale * 0.72) / (1.12 * chars.length));
       ctx.font = '600 ' + fs + 'px "PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif';
       ctx.fillStyle = 'rgba(112,30,20,0.92)';
       ctx.textAlign = 'center';
-      [...data.wish].forEach((ch, i) => {
-        ctx.fillText(ch, 0, baseScale * 0.34 + i * fs * 1.12);
+      chars.forEach((ch, i) => {
+        ctx.fillText(ch, 0, baseScale * 0.3 + (i + 1) * fs * 1.12);
       });
     }
 
