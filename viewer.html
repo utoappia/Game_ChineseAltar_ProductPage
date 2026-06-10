@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>心誠則靈 — 分享內容</title>
+<meta name="description" content="檢視來自心誠則靈 App 的分享內容。" />
+<!-- Shared links carry personal content in the fragment — keep them out of search. -->
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#b3261c" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏮</text></svg>" />
+<style>
+  /* Same palette as index.html (the landing page). */
+  :root {
+    --ink: #2a1c14;
+    --paper: #fbf4e8;
+    --red: #b3261c;
+    --red-deep: #7d160f;
+    --gold: #c79a4b;
+    --gold-soft: #e7cd97;
+    --muted: #6f5d4d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei",
+      "Hiragino Sans", system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  a { color: inherit; }
+  .wrap { width: min(720px, 92vw); margin: 0 auto; }
+
+  header {
+    text-align: center;
+    padding: 26px 0 18px;
+    background: linear-gradient(180deg, #fde6d6 0%, var(--paper) 100%);
+  }
+  header a { text-decoration: none; }
+  header .name {
+    font-size: 26px;
+    letter-spacing: .14em;
+    color: var(--red-deep);
+    font-weight: 700;
+  }
+  header .sub { font-size: 13px; color: var(--muted); letter-spacing: .06em; }
+
+  main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px 0 40px; }
+  /* The stage — each content renderer owns everything inside. */
+  #stage { width: min(720px, 92vw); text-align: center; }
+
+  .card {
+    background: #fffdf8;
+    border: 1px solid var(--gold-soft);
+    border-radius: 16px;
+    padding: 40px 26px;
+    box-shadow: 0 10px 26px rgba(125, 22, 15, .08);
+  }
+  .card h2 { color: var(--red-deep); letter-spacing: .1em; margin-bottom: 10px; font-size: 22px; }
+  .card p { color: var(--muted); font-size: 15px; }
+  .card .big { font-size: 56px; line-height: 1.2; margin-bottom: 10px; }
+
+  .store-row { margin-top: 22px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .store-row a {
+    display: inline-block;
+    padding: 10px 22px;
+    border-radius: 999px;
+    background: var(--red);
+    color: #fff;
+    text-decoration: none;
+    font-size: 15px;
+    letter-spacing: .04em;
+    box-shadow: 0 6px 16px rgba(125, 22, 15, .25);
+  }
+  .store-row a.alt { background: #fff; color: var(--red-deep); border: 1px solid var(--gold); box-shadow: none; }
+
+  footer { text-align: center; padding: 18px 0 26px; color: var(--muted); font-size: 13px; }
+  footer a { margin: 0 8px; }
+</style>
+</head>
+<body>
+  <header>
+    <a href="index.html">
+      <div class="name">心誠則靈</div>
+      <div class="sub">隨身的數位香火</div>
+    </a>
+  </header>
+
+  <main><div id="stage"></div></main>
+
+  <footer>
+    <div class="wrap">
+      <a href="index.html">關於 App</a>
+      <a href="https://apps.apple.com/app/%E5%BF%83%E8%AA%A0%E5%89%87%E9%9D%88/id1399972449" target="_blank" rel="noopener">App Store</a>
+      <a href="https://play.google.com/store/apps/details?id=com.utoappia.worshipapp" target="_blank" rel="noopener">Google Play</a>
+    </div>
+  </footer>
+
+<script>
+'use strict';
+/**
+ * Generic share-content viewer.
+ *
+ * The app shares URLs of the form  viewer.html#<type>=<base64url-blob>
+ * (data rides in the FRAGMENT so it never reaches any server). Each content
+ * type registers a renderer in VIEWERS; adding a new shareable thing later
+ * (e.g. an altar snapshot) is one more entry — the shell stays unchanged.
+ *
+ * Blob convention (per type, mirrors the app side):
+ *   version byte(s) · payload · FNV-1a checksum (4B, big-endian)
+ * A truncated or mangled link fails the checksum and is rejected outright,
+ * never half-rendered.
+ */
+
+const APP_STORE_URL = 'https://apps.apple.com/app/%E5%BF%83%E8%AA%A0%E5%89%87%E9%9D%88/id1399972449';
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.utoappia.worshipapp';
+
+// ── helpers ────────────────────────────────────────────────────────────────
+
+/** base64url → Uint8Array (returns null on malformed input). */
+function decodeBase64url(s) {
+  try {
+    const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4);
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  } catch { return null; }
+}
+
+/** FNV-1a 32-bit over bytes. */
+function fnv1a(bytes) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < bytes.length; i++) {
+    h ^= bytes[i];
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h >>> 0;
+}
+
+/** Verify + strip the trailing 4-byte checksum; null if it doesn't match. */
+function checkedPayload(bytes) {
+  if (!bytes || bytes.length < 5) return null;
+  const body = bytes.subarray(0, bytes.length - 4);
+  const want = new DataView(bytes.buffer, bytes.byteOffset + bytes.length - 4, 4).getUint32(0);
+  return fnv1a(body) === want ? body : null;
+}
+
+function storeRow() {
+  return '<div class="store-row">' +
+    '<a href="' + APP_STORE_URL + '" target="_blank" rel="noopener">App Store 下載</a>' +
+    '<a class="alt" href="' + PLAY_STORE_URL + '" target="_blank" rel="noopener">Google Play 下載</a>' +
+    '</div>';
+}
+
+function showCard(emoji, title, text) {
+  document.getElementById('stage').innerHTML =
+    '<div class="card"><div class="big">' + emoji + '</div><h2>' + title + '</h2><p>' + text + '</p>' + storeRow() + '</div>';
+}
+
+// ── content renderers ──────────────────────────────────────────────────────
+
+/** 天燈 — sky lantern (renderer lands together with the app feature). */
+function renderLantern(encoded) {
+  const payload = checkedPayload(decodeBase64url(encoded));
+  if (!payload) {
+    showCard('🏮', '連結無法讀取', '這個天燈連結似乎不完整，請重新複製完整網址再試一次。');
+    return;
+  }
+  // TODO(lantern): decode strokes + wish text and render the floating lantern.
+  showCard('🏮', '天燈即將升空', '此檢視器版本尚未支援這盞天燈，請稍後再來，或下載 App 觀看。');
+}
+
+/** type key in the URL fragment → renderer. */
+const VIEWERS = {
+  lantern: renderLantern,
+};
+
+// ── router ─────────────────────────────────────────────────────────────────
+
+function route() {
+  const m = location.hash.match(/^#([a-z][\w-]*)=(.+)$/);
+  const render = m && VIEWERS[m[1]];
+  if (render) render(m[2]);
+  else showCard('🙏', '沒有可顯示的內容', '請透過 App 分享的連結開啟本頁。');
+}
+
+window.addEventListener('hashchange', route);
+route();
+</script>
+</body>
+</html>
