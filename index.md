@@ -17,10 +17,6 @@
   2. App商品購買紀錄
   3. 機器的 ID
 
-請查看:
-  - [安卓 Google Play - Unity 的數據安全解說](https://docs.unity.com/ads/zh-cn/manual/GoogleDataSafety)
-  - [蘋果 iOS - Unity 的數據安全解說](https://docs.unity.com/ads/zh-cn/manual/ApplePrivacySurvey)
-
 ## 帳戶資料
 您可以刪除帳戶資料：在主畫面中選取「我的帳戶」並在下方按下「刪除帳戶」。
 
