@@ -173,18 +173,25 @@ const LANTERN_BRUSH_COLORS = ['#c0392b', '#222222', '#d9912f', '#2e7d32', '#a64c
 const LANTERN_PAPER_COLORS = ['#e8a33d'];
 const L_TOP = 1.0, L_BOT = 0.62, L_H = 1.5, L_OPEN = 0.5, L_FOCAL = 5;
 
-/** Blob v1: ver(1) flags(1) paper(1) wishLen(1) wish strokeCount(2)
- *  per stroke [face<<6|color (1) count(2) points u,v (1B each)] */
+/** Blob v1: ver flags paper wishLen wish strokes  (wish → converted to a
+ *  vertical text item on face 0, matching how v1 rendered it).
+ *  Blob v2: ver flags paper strokeCount(2B) strokes textCount(1B)
+ *  per text [ face<<6|color · direction · u · v · size · byteLen · utf8 ]. */
 function decodeLanternBlob(encoded) {
   const body = checkedPayload(decodeBase64url(encoded));
-  if (!body || body[0] !== 1) return null;
+  if (!body) return null;
+  const version = body[0];
+  if (version !== 1 && version !== 2) return null;
   let i = 1;
   i++; // flags
   const paperColor = body[i++];
-  const wishLen = body[i++];
-  if (i + wishLen > body.length) return null;
-  const wish = wishLen ? new TextDecoder().decode(body.subarray(i, i + wishLen)) : '';
-  i += wishLen;
+  let v1Wish = '';
+  if (version === 1) {
+    const wishLen = body[i++];
+    if (i + wishLen > body.length) return null;
+    v1Wish = wishLen ? new TextDecoder().decode(body.subarray(i, i + wishLen)) : '';
+    i += wishLen;
+  }
   if (i + 2 > body.length) return null;
   const strokeCount = (body[i] << 8) | body[i + 1];
   i += 2;
@@ -199,7 +206,45 @@ function decodeLanternBlob(encoded) {
     for (let p = 0; p < count; p++) { points.push({ u: body[i] / 255, v: body[i + 1] / 255 }); i += 2; }
     strokes.push({ face: (fc >> 6) & 3, color: fc & 63, points });
   }
-  return { strokes, wish, paperColor };
+  const texts = [];
+  if (version === 1) {
+    if (v1Wish) {
+      const n = [...v1Wish].length;
+      texts.push({ face: 0, color: 0, direction: 1, u: 0.5, v: 0.5,
+        size: Math.min(0.15, 0.64 / Math.max(1, n)), text: v1Wish });
+    }
+  } else {
+    if (i + 1 > body.length) return null;
+    const textCount = body[i++];
+    for (let t = 0; t < textCount; t++) {
+      if (i + 6 > body.length) return null;
+      const fc = body[i++];
+      const direction = body[i++] % 3;
+      const u = body[i++] / 255, v = body[i++] / 255, size = body[i++] / 255;
+      const len = body[i++];
+      if (i + len > body.length) return null;
+      const text = new TextDecoder().decode(body.subarray(i, i + len));
+      i += len;
+      texts.push({ face: (fc >> 6) & 3, color: fc & 63, direction, u, v, size, text });
+    }
+  }
+  return { strokes, texts, paperColor };
+}
+
+/** Characters of a text item laid out around its center anchor in unit face
+ *  coords (port of the app's layoutTextChars). */
+function lanternLayoutText(t) {
+  const chars = t.direction === 2 ? [...t.text].reverse() : [...t.text];
+  const n = chars.length;
+  if (n === 0) return [];
+  if (t.direction === 1) {
+    const step = t.size * 1.12;
+    const start = t.v - ((n - 1) / 2) * step;
+    return chars.map((ch, i) => ({ ch, u: t.u, v: start + i * step }));
+  }
+  const stepU = (t.size * 1.05 * L_H) / (2 * lanternHalfAt(t.v));
+  const start = t.u - ((n - 1) / 2) * stepU;
+  return chars.map((ch, i) => ({ ch, u: start + i * stepU, v: t.v }));
 }
 
 function lanternHalfAt(v) { return L_TOP + (L_BOT - L_TOP) * v; }
@@ -228,8 +273,9 @@ function renderLantern(encoded) {
     return;
   }
   const stage = document.getElementById('stage');
-  const wishLine = data.wish
-    ? '<p style="font-size:18px;color:var(--red-deep);letter-spacing:.12em;margin-top:14px;">「' + data.wish.replace(/[<>&]/g, '') + '」</p>'
+  const caption = data.texts.map((t) => t.text).join('　');
+  const wishLine = caption
+    ? '<p style="font-size:18px;color:var(--red-deep);letter-spacing:.12em;margin-top:14px;">「' + caption.replace(/[<>&]/g, '') + '」</p>'
     : '';
   stage.innerHTML =
     '<div class="card" style="padding:18px 14px 26px;">' +
@@ -337,31 +383,29 @@ function renderLantern(encoded) {
     ctx.fillStyle = 'rgba(255,250,225,0.95)';
     ctx.beginPath(); ctx.arc(0, flameY, baseScale * 0.12 * flicker, 0, Math.PI * 2); ctx.fill();
 
-    // 祈願文 — brush-written ON face 0 (like a real 天燈): each character is
-    // anchored on the face and projected like the strokes, so the writing
-    // turns with the lantern and hides when the face turns away.
-    const wishFacing = Math.max(0, Math.cos(yaw));
-    if (data.wish && wishFacing > 0.05) {
-      const chars = [...data.wish];
-      const fs = Math.min(baseScale * 0.22, (L_H * baseScale * 0.72) / (1.12 * chars.length));
+    // text layer — written on the faces (editor's top layer); each character
+    // is projected like the strokes, so writing turns with the lantern and
+    // hides when its face turns away.
+    for (const t of data.texts) {
+      const facing = lanternFacing(t.face, yaw);
+      if (facing <= 0.05 || !t.text) continue;
+      const fs = Math.max(6, t.size * L_H * baseScale);
       ctx.font = '600 ' + fs + 'px "PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif';
-      ctx.fillStyle = 'rgba(112,30,20,0.92)';
+      ctx.fillStyle = LANTERN_BRUSH_COLORS[t.color] || LANTERN_BRUSH_COLORS[0];
       ctx.textAlign = 'center';
-      ctx.globalAlpha = Math.min(1, wishFacing * 1.4);
-      chars.forEach((ch, i) => {
-        const stepV = (fs * 1.12) / (L_H * baseScale);
-        const v = 0.16 + (i + 0.5) * stepV;
-        const c = lanternProject(0, 0.5, v, yaw);
-        const l = lanternProject(0, 0.4, v, yaw);
-        const r = lanternProject(0, 0.6, v, yaw);
-        const headOn = 0.2 * 2 * lanternHalfAt(v);
-        const scaleX = Math.max(0.05, Math.hypot(r.x - l.x, r.y - l.y) / headOn);
+      ctx.globalAlpha = Math.min(1, facing * 1.4);
+      for (const c of lanternLayoutText(t)) {
+        const p = lanternProject(t.face, c.u, c.v, yaw);
+        const l = lanternProject(t.face, Math.max(0, c.u - 0.1), c.v, yaw);
+        const r = lanternProject(t.face, Math.min(1, c.u + 0.1), c.v, yaw);
+        const headOn = (Math.min(1, c.u + 0.1) - Math.max(0, c.u - 0.1)) * 2 * lanternHalfAt(c.v);
+        const scaleX = Math.max(0.05, Math.hypot(r.x - l.x, r.y - l.y) / Math.max(1e-4, headOn));
         ctx.save();
-        ctx.translate(c.x * baseScale, c.y * baseScale);
+        ctx.translate(p.x * baseScale, p.y * baseScale);
         ctx.scale(scaleX, 1);
-        ctx.fillText(ch, 0, fs * 0.36);
+        ctx.fillText(c.ch, 0, fs * 0.36);
         ctx.restore();
-      });
+      }
       ctx.globalAlpha = 1;
     }
 
