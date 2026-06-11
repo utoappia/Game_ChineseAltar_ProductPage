@@ -304,11 +304,11 @@ function buildAtlasCanvas(data) {
   // corner folds between panels read clearly (normal-independent; the glow
   // canvas is derived from this one, so it inherits the creases)
   ctx.globalCompositeOperation = 'multiply';
-  const W = AQ * 0.14;
+  const W = AQ * 0.08;
   for (const [qx, qy] of AQUAD) {
     for (const [x0, x1] of [[qx, qx + W], [qx + AQ, qx + AQ - W]]) {
       const g = ctx.createLinearGradient(x0, 0, x1, 0);
-      g.addColorStop(0, 'rgb(196,196,196)');
+      g.addColorStop(0, 'rgb(238,238,238)');
       g.addColorStop(1, 'rgb(255,255,255)');
       ctx.fillStyle = g;
       ctx.fillRect(Math.min(x0, x1), qy, W, AQ);
