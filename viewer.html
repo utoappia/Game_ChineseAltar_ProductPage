@@ -428,6 +428,26 @@ async function renderLantern(encoded) {
   renderer.setSize(cssW, cssH, false);
   renderer.setClearColor(0x000000, 0);
 
+  // swipe / drag to turn the lantern (touch + mouse); vertical swipes still
+  // scroll the page (touch-action: pan-y)
+  let userYaw = 0, yawVel = 0, draggingYaw = false, lastDragX = 0;
+  canvas.style.touchAction = 'pan-y';
+  canvas.style.cursor = 'grab';
+  canvas.addEventListener('pointerdown', (e) => {
+    draggingYaw = true; lastDragX = e.clientX; yawVel = 0;
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!draggingYaw) return;
+    const dx = e.clientX - lastDragX;
+    lastDragX = e.clientX;
+    userYaw += dx * 0.012;
+    yawVel = dx * 0.012;
+  });
+  const endDrag = () => { draggingYaw = false; };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, cssW / cssH, 0.1, 100);
   camera.position.set(0, 1.1, 8.6);
@@ -494,7 +514,8 @@ async function renderLantern(encoded) {
     const glow = Math.min(1, t / 1.2); // the shared lantern is already aloft — fade the flame in
     const flicker = 1 + 0.1 * Math.sin(t * 13) + 0.06 * Math.sin(t * 29 + 1.7);
     group.position.set(Math.sin(t * 0.55) * 0.35, Math.sin(t * 0.8) * 0.08, 0);
-    group.rotation.y = 0.32 * Math.sin(t * 0.35) + t * 0.12;
+    if (!draggingYaw) { userYaw += yawVel; yawVel *= 0.94; }
+    group.rotation.y = 0.32 * Math.sin(t * 0.35) + t * 0.12 + userYaw;
     flameLight.intensity = glow * 14 * flicker;
     flame.material.opacity = glow * 0.95;
     flame.scale.set(0.55 * flicker, 0.7 * flicker, 1);
