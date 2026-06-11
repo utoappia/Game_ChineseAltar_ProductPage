@@ -691,7 +691,12 @@ async function renderLantern(encoded) {
     const t = (nowMs - start) / 1000;
     const glow = Math.min(1, t / 1.2); // the shared lantern is already aloft — fade the flame in
     const flicker = 1 + 0.1 * Math.sin(t * 13) + 0.06 * Math.sin(t * 29 + 1.7);
-    group.position.set(Math.sin(t * 0.55) * 0.35, 1.5 + Math.sin(t * 0.8) * 0.08, 0);
+    // intro float-up: start low (near the bottom edge), ease up to rest
+    const REST_Y = 1.5, START_Y = -3.6, RISE_DUR = 18.0;
+    const riseP = Math.min(1, t / RISE_DUR);
+    const rise = 1 - Math.pow(1 - riseP, 3); // easeOutCubic
+    const baseY = START_Y + (REST_Y - START_Y) * rise;
+    group.position.set(Math.sin(t * 0.55) * 0.35, baseY + Math.sin(t * 0.8) * 0.08, 0);
     if (!draggingYaw) { userYaw += yawVel; yawVel *= 0.94; }
     group.rotation.y = 0.32 * Math.sin(t * 0.35) + t * 0.12 + userYaw;
     flameLight.intensity = glow * 5 * flicker;
