@@ -504,9 +504,11 @@ async function renderLantern(encoded) {
           // cap exports flat-shaded — weld + recompute so it lights like the body
           obj.geometry = mergeVertices(obj.geometry);
           obj.geometry.computeVertexNormals();
-          // sink the cap a hair into the body so rim-tessellation differences
-          // can't open a bright see-through slit
-          obj.position.y -= 0.015;
+          // tuck the cap a hair inward (and barely down) so its rim hides
+          // INSIDE the body wall — sinking it down alone made the rim poke
+          // through where the body tapers
+          obj.scale.set(0.99, 1, 0.99);
+          obj.position.y -= 0.004;
         }
       }
     });
