@@ -419,8 +419,11 @@ async function renderLantern(encoded) {
     map: atlas, roughness: 0.95, metalness: 0, side: THREE.DoubleSide,
     emissive: new THREE.Color(0xffb060), emissiveMap: glowAtlas, emissiveIntensity: 0,
   });
+  // up-facing normals catch the hemisphere light at full strength — darken
+  // the cap so the top reads dimmer than the glowing body
+  const capColor = paperColor.clone().multiplyScalar(0.72);
   const capMat = new THREE.MeshStandardMaterial({
-    color: paperColor, roughness: 1, metalness: 0, side: THREE.DoubleSide,
+    color: capColor, roughness: 1, metalness: 0, side: THREE.DoubleSide,
     emissive: new THREE.Color(0xffa850), emissiveIntensity: 0,
   });
 
