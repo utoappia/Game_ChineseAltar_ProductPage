@@ -495,11 +495,11 @@ async function renderLantern(encoded) {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, cssW / cssH, 0.1, 100);
-  camera.position.set(0, 1.1, 8.6);
-  camera.lookAt(0, 1.25, 0);
+  camera.position.set(0, 0, 8.6);
+  camera.lookAt(0, 2.3, 0);
 
   scene.add(new THREE.AmbientLight(0xa2a2ba, 1.5));
-  const flameLight = new THREE.PointLight(0xffb050, 0, 9);
+  const flameLight = new THREE.PointLight(0xffb050, 0, 5);
   flameLight.position.set(0, 0.25, 0);
 
   const colorCanvas = buildAtlasCanvas(data);
@@ -518,7 +518,7 @@ async function renderLantern(encoded) {
   const glowAtlas = mkTex(buildGlowCanvas(colorCanvas));
   const paperColor = new THREE.Color(LANTERN_PAPER_COLORS[data.paperColor] || LANTERN_PAPER_COLORS[0]);
   const bodyMat = new THREE.MeshStandardMaterial({
-    map: atlas, roughness: 0.95, metalness: 0, side: THREE.DoubleSide,
+    map: atlas, roughness: 0.95, metalness: 0, side: THREE.BackSide,
     emissive: new THREE.Color(0xffb060), emissiveMap: glowAtlas, emissiveIntensity: 0,
   });
   // up-facing normals catch the hemisphere light at full strength — darken
@@ -529,11 +529,18 @@ async function renderLantern(encoded) {
     emissive: new THREE.Color(0xffb060).multiply(paperColor), emissiveIntensity: 0,
   });
 
+  // dark interior shell (backfaces only): the mouth shows a dim cavity
+  // warmed by the flame light, so the fireball reads against it
+  const interiorMat = new THREE.MeshStandardMaterial({
+    color: paperColor.clone().multiplyScalar(0.22),
+    roughness: 1, metalness: 0, side: THREE.FrontSide,
+  });
+
   const flame = new THREE.Sprite(new THREE.SpriteMaterial({
     map: flameSpriteTexture(THREE), transparent: true, depthWrite: false, opacity: 0,
   }));
-  flame.scale.set(0.55, 0.7, 1);
-  flame.position.set(0, 0.28, 0);
+  flame.scale.set(0.62, 0.8, 1);
+  flame.position.set(0, 0.34, 0);
 
   const group = new THREE.Group();
   group.add(flameLight);
@@ -577,8 +584,10 @@ async function renderLantern(encoded) {
   }
 
   new GLTFLoader().load('assets/skyLantern.glb', (gltf) => {
-    gltf.scene.traverse((obj) => {
-      if (obj.isMesh) {
+    const meshes = [];
+    gltf.scene.traverse((obj) => { if (obj.isMesh) meshes.push(obj); });
+    for (const obj of meshes) {
+      {
         const isCap = obj.material && obj.material.name === 'cap';
         obj.material = isCap ? capMat : bodyMat;
         if (!isCap) {
@@ -604,8 +613,13 @@ async function renderLantern(encoded) {
           obj.scale.set(0.99, 1, 0.99);
           obj.position.y -= 0.004;
         }
+        // interior shell — same (already wrinkled) geometry, backfaces
+        const inner = new THREE.Mesh(obj.geometry, interiorMat);
+        inner.position.copy(obj.position);
+        inner.scale.copy(obj.scale);
+        obj.parent.add(inner);
       }
-    });
+    }
     group.add(gltf.scene);
   }, undefined, () => {
     showCard('🏮', '無法載入天燈', '模型載入失敗，請稍後再試，或下載 App 觀看。');
@@ -616,10 +630,10 @@ async function renderLantern(encoded) {
     const t = (nowMs - start) / 1000;
     const glow = Math.min(1, t / 1.2); // the shared lantern is already aloft — fade the flame in
     const flicker = 1 + 0.1 * Math.sin(t * 13) + 0.06 * Math.sin(t * 29 + 1.7);
-    group.position.set(Math.sin(t * 0.55) * 0.35, Math.sin(t * 0.8) * 0.08, 0);
+    group.position.set(Math.sin(t * 0.55) * 0.35, 1.5 + Math.sin(t * 0.8) * 0.08, 0);
     if (!draggingYaw) { userYaw += yawVel; yawVel *= 0.94; }
     group.rotation.y = 0.32 * Math.sin(t * 0.35) + t * 0.12 + userYaw;
-    flameLight.intensity = glow * 14 * flicker;
+    flameLight.intensity = glow * 4.5 * flicker;
     flame.material.opacity = glow * 0.95;
     flame.scale.set(0.55 * flicker, 0.7 * flicker, 1);
     bodyMat.emissiveIntensity = glow * 0.95 * flicker;
