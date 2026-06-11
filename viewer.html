@@ -189,7 +189,7 @@ function showCard(emoji, title, text) {
 
 const LANTERN_BRUSH_COLORS = ['#c0392b', '#222222', '#d9912f', '#2e7d32', '#a64ca6', '#2456a6'];
 const LANTERN_PAPER_COLORS = ['#e8a33d'];
-const L_TOP = 1.0, L_H = 2.0, L_OPEN = 0.5, L_FOCAL = 5, L_PITCH = 0.24;
+const L_TOP = 1.0, L_H = 2.0, L_OPEN = 0.6, L_FOCAL = 5, L_PITCH = 0.24;
 // Inflated paper profile + square→circle cross-section (port of geometry.ts)
 const L_PROFILE = [[0, 1.0], [0.22, 1.06], [0.52, 1.0], [0.8, 0.8], [1, L_OPEN / L_TOP]];
 function lClamp01(x) { return Math.min(1, Math.max(0, x)); }
