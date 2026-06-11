@@ -413,6 +413,18 @@ function coreSpriteTexture(THREE) {
   return new THREE.CanvasTexture(c);
 }
 
+function creaseBrightness(x, z) {
+  const ang = Math.atan2(x, z);
+  const face = Math.floor(((ang * 180 / Math.PI + 45 + 360) % 360) / 90);
+  let psi = ang - face * (Math.PI / 2);
+  while (psi > Math.PI) psi -= 2 * Math.PI;
+  while (psi < -Math.PI) psi += 2 * Math.PI;
+  const u = Math.min(1, Math.max(0, 0.5 + psi / (Math.PI / 2)));
+  const d = Math.min(u, 1 - u);
+  const W = 0.08, MIN = 238 / 255;
+  return d < W ? MIN + (1 - MIN) * (d / W) : 1;
+}
+
 function flameSpriteTexture(THREE) {
   const N = 64;
   const c = document.createElement('canvas');
@@ -542,6 +554,7 @@ async function renderLantern(encoded) {
   const capMat = new THREE.MeshStandardMaterial({
     color: capColor, roughness: 1, metalness: 0, side: THREE.DoubleSide,
     emissive: new THREE.Color(0xffb060).multiply(paperColor), emissiveIntensity: 0,
+    vertexColors: true, // edge-shadow baked per vertex (see cap load below)
   });
 
   // dark interior shell (backfaces only): the mouth shows a dim cavity
@@ -630,6 +643,15 @@ async function renderLantern(encoded) {
           // cap exports flat-shaded — weld + recompute so it lights like the body
           obj.geometry = mergeVertices(obj.geometry);
           obj.geometry.computeVertexNormals();
+          // edge shadow matching the body's baked crease — darken toward each
+          // face's left/right edge so the cap silhouette reads like the body
+          const cpos = obj.geometry.attributes.position;
+          const ccol = new Float32Array(cpos.count * 3);
+          for (let i = 0; i < cpos.count; i++) {
+            const b = creaseBrightness(cpos.getX(i), cpos.getZ(i));
+            ccol[i * 3] = ccol[i * 3 + 1] = ccol[i * 3 + 2] = b;
+          }
+          obj.geometry.setAttribute('color', new THREE.BufferAttribute(ccol, 3));
           // tuck the cap a hair inward (and barely down) so its rim hides
           // INSIDE the body wall — sinking it down alone made the rim poke
           // through where the body tapers
