@@ -399,8 +399,8 @@ async function renderLantern(encoded) {
   camera.position.set(0, 1.2, 9.4);
   camera.lookAt(0, 1.7, 0);
 
-  scene.add(new THREE.AmbientLight(0x9090b0, 1.1));
-  scene.add(new THREE.HemisphereLight(0xb0a0c8, 0x5a4030, 0.5));
+  scene.add(new THREE.AmbientLight(0x9898b4, 1.25));
+  scene.add(new THREE.HemisphereLight(0xb0a0c8, 0x5a4030, 0.25));
   const flameLight = new THREE.PointLight(0xffb050, 0, 9);
   flameLight.position.set(0, 0.25, 0);
 
@@ -421,7 +421,7 @@ async function renderLantern(encoded) {
   });
   // up-facing normals catch the hemisphere light at full strength — darken
   // the cap so the top reads dimmer than the glowing body
-  const capColor = paperColor.clone().multiplyScalar(0.72);
+  const capColor = paperColor.clone().multiplyScalar(0.88);
   const capMat = new THREE.MeshStandardMaterial({
     color: capColor, roughness: 1, metalness: 0, side: THREE.DoubleSide,
     emissive: new THREE.Color(0xffa850), emissiveIntensity: 0,
@@ -458,7 +458,7 @@ async function renderLantern(encoded) {
     flame.material.opacity = glow * 0.95;
     flame.scale.set(0.55 * flicker, 0.7 * flicker, 1);
     bodyMat.emissiveIntensity = glow * 0.95 * flicker;
-    capMat.emissiveIntensity = glow * 0.15 * flicker;
+    capMat.emissiveIntensity = glow * 0.22 * flicker;
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }
