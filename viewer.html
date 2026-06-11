@@ -59,8 +59,20 @@
     background: linear-gradient(180deg, #fde6d6 0%, var(--paper) 100%);
   }
   header a { text-decoration: none; }
+  header .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px; /* small spacing between the icon and the title */
+    font-size: 26px; /* the title size — the icon's 1em is relative to this */
+  }
+  header .brand img {
+    height: 1em; /* matches the title's text height */
+    width: auto;
+    border-radius: 22%;
+  }
   header .name {
-    font-size: 26px;
+    font-size: 1em;
+    line-height: 1;
     letter-spacing: .14em;
     color: var(--red-deep);
     font-weight: 700;
@@ -102,8 +114,9 @@
 </head>
 <body>
   <header>
-    <a href="index.html">
-      <div class="name">心誠則靈</div>
+    <a href="index.html" class="brand">
+      <img src="assets/app-icon.png" alt="" />
+      <span class="name">心誠則靈</span>
     </a>
   </header>
 
