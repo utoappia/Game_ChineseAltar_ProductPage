@@ -294,6 +294,29 @@ function buildAtlasCanvas(data) {
   const ctx = c.getContext('2d');
   ctx.fillStyle = LANTERN_PAPER_COLORS[data.paperColor] || LANTERN_PAPER_COLORS[0];
   ctx.fillRect(0, 0, ATLAS, ATLAS);
+  // rice-paper texture: broad pulp mottling + fine fiber grain, overlaid on
+  // the paper. The glow atlas derives from this canvas, so the mottling shows
+  // through the lit paper — the translucency of real 棉紙.
+  const noiseLayer = (cells, alpha) => {
+    const n = document.createElement('canvas');
+    n.width = n.height = cells;
+    const nctx = n.getContext('2d');
+    const img = nctx.createImageData(cells, cells);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const g = 96 + Math.floor(Math.random() * 128);
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = g;
+      img.data[i + 3] = 255;
+    }
+    nctx.putImageData(img, 0, 0);
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = alpha;
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(n, 0, 0, ATLAS, ATLAS);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  };
+  noiseLayer(26, 0.16); // pulp-density blotches
+  noiseLayer(240, 0.08); // fine fiber grain
   ctx.lineCap = ctx.lineJoin = 'round';
   ctx.lineWidth = 0.024 * AQ;
   for (const s of data.strokes) {
