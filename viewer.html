@@ -171,7 +171,7 @@ function showCard(emoji, title, text) {
 
 const LANTERN_BRUSH_COLORS = ['#c0392b', '#222222', '#d9912f', '#2e7d32', '#a64ca6', '#2456a6'];
 const LANTERN_PAPER_COLORS = ['#e8a33d'];
-const L_TOP = 1.0, L_H = 2.6, L_OPEN = 0.5, L_FOCAL = 5, L_PITCH = 0.24;
+const L_TOP = 1.0, L_H = 2.0, L_OPEN = 0.5, L_FOCAL = 5, L_PITCH = 0.24;
 // Inflated paper profile + square→circle cross-section (port of geometry.ts)
 const L_PROFILE = [[0, 1.0], [0.22, 1.06], [0.52, 1.0], [0.8, 0.8], [1, L_OPEN / L_TOP]];
 function lClamp01(x) { return Math.min(1, Math.max(0, x)); }
@@ -397,8 +397,8 @@ async function renderLantern(encoded) {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, cssW / cssH, 0.1, 100);
-  camera.position.set(0, 1.2, 9.4);
-  camera.lookAt(0, 1.7, 0);
+  camera.position.set(0, 1.1, 8.6);
+  camera.lookAt(0, 1.25, 0);
 
   scene.add(new THREE.AmbientLight(0xa2a2ba, 1.5));
   const flameLight = new THREE.PointLight(0xffb050, 0, 9);
@@ -450,6 +450,8 @@ async function renderLantern(encoded) {
         }
       }
     });
+    // model is authored 2.6 units tall (body) — squash to the chosen 2.0
+    gltf.scene.scale.set(1, 2.0 / 2.6, 1);
     group.add(gltf.scene);
   }, undefined, () => {
     showCard('🏮', '無法載入天燈', '模型載入失敗，請稍後再試，或下載 App 觀看。');
