@@ -94,19 +94,10 @@
   .card p { color: var(--muted); font-size: 15px; }
   .card .big { font-size: 56px; line-height: 1.2; margin-bottom: 10px; }
 
-  .store-row { margin-top: 22px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-  .store-row a {
-    display: inline-block;
-    padding: 10px 22px;
-    border-radius: 999px;
-    background: var(--red);
-    color: #fff;
-    text-decoration: none;
-    font-size: 15px;
-    letter-spacing: .04em;
-    box-shadow: 0 6px 16px rgba(125, 22, 15, .25);
-  }
-  .store-row a.alt { background: #fff; color: var(--red-deep); border: 1px solid var(--gold); box-shadow: none; }
+  /* official store badges, side by side, matched height */
+  .store-row { margin-top: 20px; display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .store-row a { display: inline-flex; text-decoration: none; }
+  .store-row .badge { height: 46px; width: auto; display: block; }
 
   footer { text-align: center; padding: 18px 0 26px; color: var(--muted); font-size: 13px; }
   footer a { margin: 0 8px; }
@@ -182,8 +173,10 @@ function checkedPayload(bytes) {
 
 function storeRow() {
   return '<div class="store-row">' +
-    '<a href="' + APP_STORE_URL + '" target="_blank" rel="noopener">App Store 下載</a>' +
-    '<a class="alt" href="' + PLAY_STORE_URL + '" target="_blank" rel="noopener">Google Play 下載</a>' +
+    '<a href="' + APP_STORE_URL + '" target="_blank" rel="noopener">' +
+    '<img class="badge" src="assets/badge-appstore.svg" alt="Download on the App Store" /></a>' +
+    '<a href="' + PLAY_STORE_URL + '" target="_blank" rel="noopener">' +
+    '<img class="badge" src="assets/badge-googleplay.png" alt="Get it on Google Play" /></a>' +
     '</div>';
 }
 
@@ -503,8 +496,8 @@ async function renderLantern(encoded) {
     '<canvas id="lantern-canvas" style="width:100%;max-width:420px;border-radius:12px;' +
     'background:linear-gradient(180deg,#16203a 0%,#2c3f68 100%);"></canvas>' +
     wishLine +
-    storeRow() +
-    '</div>';
+    '</div>' +
+    storeRow(); // below the white card, side by side
 
   const canvas = document.getElementById('lantern-canvas');
   const cssW = Math.min(420, canvas.parentElement.clientWidth - 28);
