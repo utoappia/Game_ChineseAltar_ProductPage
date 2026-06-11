@@ -465,7 +465,7 @@ async function renderLantern(encoded) {
   stage.innerHTML =
     '<div class="card" style="padding:18px 14px 26px;">' +
     '<canvas id="lantern-canvas" style="width:100%;max-width:420px;border-radius:12px;' +
-    'background:linear-gradient(180deg,#2b3a67 0%,#7c5a8c 55%,#e8a07a 100%);"></canvas>' +
+    'background:linear-gradient(180deg,#16203a 0%,#2c3f68 100%);"></canvas>' +
     wishLine +
     '<p style="margin-top:10px;">有人為你放了一盞天燈 🏮</p>' +
     storeRow() +
@@ -572,8 +572,8 @@ async function renderLantern(encoded) {
 
   // ── atmosphere: starfield + distant lanterns drifting up ──────────────────
   const starMats = [];
-  for (let layer = 0; layer < 2; layer++) {
-    const n = 70;
+  for (let layer = 0; layer < 3; layer++) {
+    const n = 130;
     const posArr = new Float32Array(n * 3);
     for (let i = 0; i < n * 3; i += 3) {
       posArr[i] = (Math.random() - 0.5) * 90;
@@ -671,6 +671,7 @@ async function renderLantern(encoded) {
     // atmosphere: twinkle + slow lantern drift (wrap at the top)
     starMats[0].opacity = 0.42 + 0.18 * Math.sin(t * 0.9);
     starMats[1].opacity = 0.42 + 0.18 * Math.sin(t * 1.3 + 2.1);
+    starMats[2].opacity = 0.42 + 0.18 * Math.sin(t * 1.7 + 4.2);
     for (const b of bgLanterns) {
       b.s.position.y += b.speed / 60;
       b.s.position.x += Math.sin(t * 0.4 + b.phase) * 0.002;
