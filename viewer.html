@@ -204,7 +204,7 @@ function decodeLanternBlob(encoded) {
   const body = checkedPayload(decodeBase64url(encoded));
   if (!body) return null;
   const version = body[0];
-  if (version !== 1 && version !== 2) return null;
+  if (version !== 1 && version !== 2 && version !== 3) return null;
   let i = 1;
   i++; // flags
   const paperColor = body[i++];
@@ -251,7 +251,17 @@ function decodeLanternBlob(encoded) {
       texts.push({ face: (fc >> 6) & 3, color: fc & 63, direction, u, v, size, text });
     }
   }
-  return { strokes, texts, paperColor };
+  // message (v3+); v1/v2 have none
+  let message = '';
+  if (version === 3) {
+    if (i + 2 > body.length) return null;
+    const msgLen = (body[i] << 8) | body[i + 1];
+    i += 2;
+    if (i + msgLen > body.length) return null;
+    message = msgLen ? new TextDecoder().decode(body.subarray(i, i + msgLen)) : '';
+    i += msgLen;
+  }
+  return { strokes, texts, paperColor, message };
 }
 
 /** Characters of a text item laid out around its center anchor in unit face
@@ -470,7 +480,9 @@ async function renderLantern(encoded) {
     return;
   }
   const stage = document.getElementById('stage');
-  const caption = data.texts.map((t) => t.text).join('　');
+  // the lantern's optional message (the faces carry only the drawings); the
+  // texts are graphics, not the caption
+  const caption = (data.message || '').trim();
   const wishLine = caption
     ? '<p style="font-size:18px;color:var(--red-deep);letter-spacing:.12em;margin-top:14px;">「' + caption.replace(/[<>&]/g, '') + '」</p>'
     : '';
