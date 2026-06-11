@@ -193,6 +193,8 @@ function showCard(emoji, title, text) {
 // LanternFlight.tsx). Keep the constants in sync with the app.
 
 const LANTERN_BRUSH_COLORS = ['#c0392b', '#222222', '#d9912f', '#2e7d32', '#a64ca6', '#2456a6'];
+const LANTERN_BRUSH_SIZES = [0.01, 0.015, 0.022, 0.034, 0.05]; // 特細..特粗
+const DEFAULT_BRUSH_FRAC = 0.022;
 const LANTERN_PAPER_COLORS = ['#e8a33d'];
 const L_TOP = 1.0, L_H = 2.0, L_OPEN = 0.6, L_FOCAL = 5, L_PITCH = 0.24;
 // Inflated paper profile + square→circle cross-section (port of geometry.ts)
@@ -209,7 +211,7 @@ function decodeLanternBlob(encoded) {
   const body = checkedPayload(decodeBase64url(encoded));
   if (!body) return null;
   const version = body[0];
-  if (version !== 1 && version !== 2 && version !== 3) return null;
+  if (version < 1 || version > 4) return null;
   let i = 1;
   i++; // flags
   const paperColor = body[i++];
@@ -225,14 +227,21 @@ function decodeLanternBlob(encoded) {
   i += 2;
   const strokes = [];
   for (let s = 0; s < strokeCount; s++) {
-    if (i + 3 > body.length) return null;
+    if (i + 1 > body.length) return null;
     const fc = body[i++];
+    let width;
+    if (version >= 4) {
+      if (i + 1 > body.length) return null;
+      const sz = body[i++];
+      width = LANTERN_BRUSH_SIZES[sz] != null ? LANTERN_BRUSH_SIZES[sz] : DEFAULT_BRUSH_FRAC;
+    }
+    if (i + 2 > body.length) return null;
     const count = (body[i] << 8) | body[i + 1];
     i += 2;
     if (i + count * 2 > body.length) return null;
     const points = [];
     for (let p = 0; p < count; p++) { points.push({ u: body[i] / 255, v: body[i + 1] / 255 }); i += 2; }
-    strokes.push({ face: (fc >> 6) & 3, color: fc & 63, points });
+    strokes.push({ face: (fc >> 6) & 3, color: fc & 63, width, points });
   }
   const texts = [];
   if (version === 1) {
@@ -332,9 +341,10 @@ function buildAtlasCanvas(data) {
   };
   noiseLayer(26, 0.16); // pulp-density blotches
   ctx.lineCap = ctx.lineJoin = 'round';
-  ctx.lineWidth = 0.024 * AQ;
+
   for (const s of data.strokes) {
     if (s.points.length < 2) continue;
+    ctx.lineWidth = (s.width != null ? s.width : DEFAULT_BRUSH_FRAC) * AQ;
     const [qx, qy] = AQUAD[s.face];
     ctx.beginPath();
     s.points.forEach((p, i) => {
