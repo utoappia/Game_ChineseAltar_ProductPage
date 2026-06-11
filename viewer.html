@@ -538,6 +538,7 @@ async function renderLantern(encoded) {
 
   const flame = new THREE.Sprite(new THREE.SpriteMaterial({
     map: flameSpriteTexture(THREE), transparent: true, depthWrite: false, opacity: 0,
+    blending: THREE.AdditiveBlending, // light adds — punchy fireball
   }));
   flame.scale.set(0.85, 1.1, 1);
   flame.position.set(0, 0.34, 0);
