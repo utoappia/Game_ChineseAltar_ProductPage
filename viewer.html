@@ -463,6 +463,10 @@ async function renderLantern(encoded) {
     t.flipY = false; // glTF UV convention (v down) — atlas rows already match
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 4;
+    // no mipmaps: minified sampling blends across quadrant borders (bright
+    // mouth glow would bleed onto the adjacent faces' top edges)
+    t.generateMipmaps = false;
+    t.minFilter = THREE.LinearFilter;
     return t;
   };
   const atlas = mkTex(colorCanvas);
@@ -500,6 +504,9 @@ async function renderLantern(encoded) {
           // cap exports flat-shaded — weld + recompute so it lights like the body
           obj.geometry = mergeVertices(obj.geometry);
           obj.geometry.computeVertexNormals();
+          // sink the cap a hair into the body so rim-tessellation differences
+          // can't open a bright see-through slit
+          obj.position.y -= 0.015;
         }
       }
     });
