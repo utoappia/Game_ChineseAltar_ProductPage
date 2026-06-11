@@ -345,7 +345,8 @@ function loadThree() {
       // blocks, which Safari only parses from 16.4
       import('https://esm.sh/three@0.184.0?target=es2017'),
       import('https://esm.sh/three@0.184.0/examples/jsm/loaders/GLTFLoader.js?target=es2017'),
-    ]).then(([three, loader]) => ({ THREE: three, GLTFLoader: loader.GLTFLoader }));
+      import('https://esm.sh/three@0.184.0/examples/jsm/utils/BufferGeometryUtils.js?target=es2017'),
+    ]).then(([three, loader, bgu]) => ({ THREE: three, GLTFLoader: loader.GLTFLoader, mergeVertices: bgu.mergeVertices }));
   }
   return threeModules;
 }
@@ -356,9 +357,9 @@ async function renderLantern(encoded) {
     showCard('🏮', '連結無法讀取', '這個天燈連結似乎不完整或已損毀，請重新複製完整網址再試一次。');
     return;
   }
-  let THREE, GLTFLoader;
+  let THREE, GLTFLoader, mergeVertices;
   try {
-    ({ THREE, GLTFLoader } = await loadThree());
+    ({ THREE, GLTFLoader, mergeVertices } = await loadThree());
   } catch {
     showCard('🏮', '無法顯示天燈', '3D 元件載入失敗，請檢查網路後重試，或下載 App 觀看。');
     return;
@@ -440,7 +441,15 @@ async function renderLantern(encoded) {
 
   new GLTFLoader().load('assets/skyLantern.glb', (gltf) => {
     gltf.scene.traverse((obj) => {
-      if (obj.isMesh) obj.material = (obj.material && obj.material.name === 'cap') ? capMat : bodyMat;
+      if (obj.isMesh) {
+        const isCap = obj.material && obj.material.name === 'cap';
+        obj.material = isCap ? capMat : bodyMat;
+        if (isCap) {
+          // cap exports flat-shaded — weld + recompute so it lights like the body
+          obj.geometry = mergeVertices(obj.geometry);
+          obj.geometry.computeVertexNormals();
+        }
+      }
     });
     group.add(gltf.scene);
   }, undefined, () => {
