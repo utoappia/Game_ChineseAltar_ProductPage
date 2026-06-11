@@ -104,7 +104,6 @@
   <header>
     <a href="index.html">
       <div class="name">心誠則靈</div>
-      <div class="sub">隨身的數位香火</div>
     </a>
   </header>
 
@@ -484,14 +483,13 @@ async function renderLantern(encoded) {
   // texts are graphics, not the caption
   const caption = (data.message || '').trim();
   const wishLine = caption
-    ? '<p style="font-size:18px;color:var(--red-deep);letter-spacing:.12em;margin-top:14px;">「' + caption.replace(/[<>&]/g, '') + '」</p>'
+    ? '<p style="font-size:18px;color:var(--red-deep);letter-spacing:.12em;margin-top:14px;">' + caption.replace(/[<>&]/g, '') + '</p>'
     : '';
   stage.innerHTML =
     '<div class="card" style="padding:18px 14px 26px;">' +
     '<canvas id="lantern-canvas" style="width:100%;max-width:420px;border-radius:12px;' +
     'background:linear-gradient(180deg,#16203a 0%,#2c3f68 100%);"></canvas>' +
     wishLine +
-    '<p style="margin-top:10px;">有人為你放了一盞天燈 🏮</p>' +
     storeRow() +
     '</div>';
 
