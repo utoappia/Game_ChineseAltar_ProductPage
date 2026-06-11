@@ -211,7 +211,7 @@ function decodeLanternBlob(encoded) {
   const body = checkedPayload(decodeBase64url(encoded));
   if (!body) return null;
   const version = body[0];
-  if (version < 1 || version > 4) return null;
+  if (version < 1 || version > 5) return null;
   let i = 1;
   i++; // flags
   const paperColor = body[i++];
@@ -241,7 +241,7 @@ function decodeLanternBlob(encoded) {
     if (i + count * 2 > body.length) return null;
     const points = [];
     for (let p = 0; p < count; p++) { points.push({ u: body[i] / 255, v: body[i + 1] / 255 }); i += 2; }
-    strokes.push({ face: (fc >> 6) & 3, color: fc & 63, width, points });
+    strokes.push({ face: (fc >> 6) & 3, erase: (fc & 0x20) !== 0, color: fc & 0x1f, width, points });
   }
   const texts = [];
   if (version === 1) {
@@ -342,18 +342,26 @@ function buildAtlasCanvas(data) {
   noiseLayer(26, 0.16); // pulp-density blotches
   ctx.lineCap = ctx.lineJoin = 'round';
 
+  // strokes on a separate transparent layer so eraser strokes
+  // (destination-out) reveal the paper below, then composite onto the paper
+  const sc = document.createElement('canvas');
+  sc.width = ATLAS; sc.height = ATLAS;
+  const sctx = sc.getContext('2d');
+  sctx.lineCap = sctx.lineJoin = 'round';
   for (const s of data.strokes) {
     if (s.points.length < 2) continue;
-    ctx.lineWidth = (s.width != null ? s.width : DEFAULT_BRUSH_FRAC) * AQ;
+    sctx.lineWidth = (s.width != null ? s.width : DEFAULT_BRUSH_FRAC) * AQ;
     const [qx, qy] = AQUAD[s.face];
-    ctx.beginPath();
+    sctx.beginPath();
     s.points.forEach((p, i) => {
       const x = qx + p.u * AQ, y = qy + p.v * AQ;
-      if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+      if (i) sctx.lineTo(x, y); else sctx.moveTo(x, y);
     });
-    ctx.strokeStyle = LANTERN_BRUSH_COLORS[s.color] || LANTERN_BRUSH_COLORS[0];
-    ctx.stroke();
+    sctx.globalCompositeOperation = s.erase ? 'destination-out' : 'source-over';
+    sctx.strokeStyle = s.erase ? '#000' : (LANTERN_BRUSH_COLORS[s.color] || LANTERN_BRUSH_COLORS[0]);
+    sctx.stroke();
   }
+  ctx.drawImage(sc, 0, 0);
   ctx.textAlign = 'center';
   for (const t of data.texts) {
     if (!t.text) continue;
