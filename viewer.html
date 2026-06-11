@@ -303,6 +303,24 @@ function buildAtlasCanvas(data) {
   return c;
 }
 
+function buildGlowCanvas(colorCanvas) {
+  // emissive = color atlas × vertical falloff per quadrant — real lanterns
+  // glow brightest at the mouth and fade up the paper
+  const c = document.createElement('canvas');
+  c.width = ATLAS; c.height = ATLAS;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(colorCanvas, 0, 0);
+  ctx.globalCompositeOperation = 'multiply';
+  for (const [qx, qy] of AQUAD) {
+    const g = ctx.createLinearGradient(0, qy, 0, qy + AQ);
+    g.addColorStop(0, 'rgb(56,52,48)');
+    g.addColorStop(1, 'rgb(255,255,255)');
+    ctx.fillStyle = g;
+    ctx.fillRect(qx, qy, AQ, AQ);
+  }
+  return c;
+}
+
 function flameSpriteTexture(THREE) {
   const N = 64;
   const c = document.createElement('canvas');
@@ -386,14 +404,20 @@ async function renderLantern(encoded) {
   const flameLight = new THREE.PointLight(0xffb050, 0, 9);
   flameLight.position.set(0, 0.25, 0);
 
-  const atlas = new THREE.CanvasTexture(buildAtlasCanvas(data));
-  atlas.flipY = false; // glTF UV convention (v down) — atlas rows already match
-  atlas.colorSpace = THREE.SRGBColorSpace;
-  atlas.anisotropy = 4;
+  const colorCanvas = buildAtlasCanvas(data);
+  const mkTex = (cnv) => {
+    const t = new THREE.CanvasTexture(cnv);
+    t.flipY = false; // glTF UV convention (v down) — atlas rows already match
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  };
+  const atlas = mkTex(colorCanvas);
+  const glowAtlas = mkTex(buildGlowCanvas(colorCanvas));
   const paperColor = new THREE.Color(LANTERN_PAPER_COLORS[data.paperColor] || LANTERN_PAPER_COLORS[0]);
   const bodyMat = new THREE.MeshStandardMaterial({
     map: atlas, roughness: 0.95, metalness: 0, side: THREE.DoubleSide,
-    emissive: new THREE.Color(0xffa850), emissiveMap: atlas, emissiveIntensity: 0,
+    emissive: new THREE.Color(0xffb060), emissiveMap: glowAtlas, emissiveIntensity: 0,
   });
   const capMat = new THREE.MeshStandardMaterial({
     color: paperColor, roughness: 1, metalness: 0, side: THREE.DoubleSide,
@@ -430,8 +454,8 @@ async function renderLantern(encoded) {
     flameLight.intensity = glow * 14 * flicker;
     flame.material.opacity = glow * 0.95;
     flame.scale.set(0.55 * flicker, 0.7 * flicker, 1);
-    bodyMat.emissiveIntensity = glow * 0.5 * flicker;
-    capMat.emissiveIntensity = glow * 0.35 * flicker;
+    bodyMat.emissiveIntensity = glow * 0.95 * flicker;
+    capMat.emissiveIntensity = glow * 0.15 * flicker;
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }
