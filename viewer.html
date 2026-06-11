@@ -466,7 +466,10 @@ async function renderLantern(encoded) {
     flame.material.opacity = glow * 0.95;
     flame.scale.set(0.55 * flicker, 0.7 * flicker, 1);
     bodyMat.emissiveIntensity = glow * 0.95 * flicker;
-    capMat.emissiveIntensity = glow * 0.95 * (56 / 255) * flicker;
+    // the glow atlas's gradient multiply happened in sRGB space; the GPU
+      // linearizes texels, so the body top's effective emissive is
+      // srgbToLinear(56/255) ≈ 0.04 — match it, not the raw 0.22
+      capMat.emissiveIntensity = glow * 0.95 * 0.04 * flicker;
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }
