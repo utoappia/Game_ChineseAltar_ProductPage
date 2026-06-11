@@ -366,6 +366,25 @@ function buildGlowCanvas(colorCanvas) {
   c.width = ATLAS; c.height = ATLAS;
   const ctx = c.getContext('2d');
   ctx.drawImage(colorCanvas, 0, 0);
+  // transmitted light varies more than reflected — extra pulp mottling on
+  // the GLOW only, so the lit paper shimmers with density variation
+  {
+    const n = document.createElement('canvas');
+    n.width = n.height = 22;
+    const nctx = n.getContext('2d');
+    const img = nctx.createImageData(22, 22);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const g = 96 + Math.floor(Math.random() * 128);
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = g;
+      img.data[i + 3] = 255;
+    }
+    nctx.putImageData(img, 0, 0);
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = 0.3;
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(n, 0, 0, ATLAS, ATLAS);
+    ctx.globalAlpha = 1;
+  }
   ctx.globalCompositeOperation = 'multiply';
   for (const [qx, qy] of AQUAD) {
     const g = ctx.createLinearGradient(0, qy, 0, qy + AQ);
