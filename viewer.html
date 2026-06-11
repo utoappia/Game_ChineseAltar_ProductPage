@@ -450,8 +450,6 @@ async function renderLantern(encoded) {
         }
       }
     });
-    // model is authored 2.6 units tall (body) — squash to the chosen 2.0
-    gltf.scene.scale.set(1, 2.0 / 2.6, 1);
     group.add(gltf.scene);
   }, undefined, () => {
     showCard('🏮', '無法載入天燈', '模型載入失敗，請稍後再試，或下載 App 觀看。');
