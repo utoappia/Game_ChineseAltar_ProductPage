@@ -500,6 +500,27 @@ function loadThree() {
   return threeModules;
 }
 
+/** "點亮時間：YYYY-MM-DD HH:MM:SS TZ" in the viewer's local time zone, from the
+ *  ?t=<epoch ms> query param. Returns '' when absent/invalid (old links). */
+function lightUpTimeLine() {
+  const ms = parseInt(new URLSearchParams(location.search).get('t') || '', 10);
+  if (!Number.isFinite(ms) || ms <= 0) return '';
+  const d = new Date(ms);
+  if (isNaN(d.getTime())) return '';
+  const p = (n) => String(n).padStart(2, '0');
+  const stamp =
+    d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+    ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  let tz = '';
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(d);
+    const t = parts.find((x) => x.type === 'timeZoneName');
+    if (t) tz = ' ' + t.value;
+  } catch (e) { /* ignore */ }
+  return '<p style="font-size:13px;color:#9a9a9a;letter-spacing:.04em;margin-top:6px;">點亮時間：' +
+    stamp + tz + '</p>';
+}
+
 async function renderLantern(encoded) {
   const data = decodeLanternBlob(encoded);
   if (!data) {
@@ -520,11 +541,16 @@ async function renderLantern(encoded) {
   const wishLine = caption
     ? '<p style="font-size:18px;color:var(--red-deep);letter-spacing:.12em;margin-top:14px;">' + caption.replace(/[<>&]/g, '') + '</p>'
     : '';
+  // Light-up time (點亮時間) — passed as ?t=<epoch ms> in the share URL (the
+  // blob lives in the fragment; this metadata rides the query). Rendered in the
+  // VIEWER's local time zone, smaller + grey, below the message.
+  const litLine = lightUpTimeLine();
   stage.innerHTML =
     '<div class="card" style="padding:18px 14px 26px;">' +
     '<canvas id="lantern-canvas" style="width:100%;max-width:420px;border-radius:12px;' +
     'background:linear-gradient(180deg,#16203a 0%,#2c3f68 100%);"></canvas>' +
     wishLine +
+    litLine +
     '</div>' +
     storeRow(); // below the white card, side by side
 
