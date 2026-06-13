@@ -222,7 +222,7 @@ function decodeLanternBlob(encoded) {
   const version = body[0];
   if (version < 1 || version > 5) return null;
   let i = 1;
-  i++; // flags
+  const flags = body[i++];
   const paperColor = body[i++];
   let v1Wish = '';
   if (version === 1) {
@@ -286,7 +286,19 @@ function decodeLanternBlob(encoded) {
     message = msgLen ? new TextDecoder().decode(body.subarray(i, i + msgLen)) : '';
     i += msgLen;
   }
-  return { strokes, texts, paperColor, message };
+
+  // lit time (點亮時間): 8-byte big-endian epoch SECONDS at the end of the body,
+  // present only when flags bit 0x01 is set (v5+). Combine the 32-bit halves
+  // with multiplication (epoch seconds is well within Number.MAX_SAFE_INTEGER).
+  let litAt; // epoch ms, or undefined
+  if (version >= 3 && (flags & 0x01)) {
+    if (i + 8 > body.length) return null;
+    const hi = ((body[i] << 24) | (body[i + 1] << 16) | (body[i + 2] << 8) | body[i + 3]) >>> 0;
+    const lo = ((body[i + 4] << 24) | (body[i + 5] << 16) | (body[i + 6] << 8) | body[i + 7]) >>> 0;
+    i += 8;
+    litAt = (hi * 0x100000000 + lo) * 1000;
+  }
+  return { strokes, texts, paperColor, message, litAt };
 }
 
 /** Characters of a text item laid out around its center anchor in unit face
@@ -500,10 +512,13 @@ function loadThree() {
   return threeModules;
 }
 
-/** "點亮時間：YYYY-MM-DD HH:MM:SS TZ" in the viewer's local time zone, from the
- *  ?t=<epoch ms> query param. Returns '' when absent/invalid (old links). */
-function lightUpTimeLine() {
-  const ms = parseInt(new URLSearchParams(location.search).get('t') || '', 10);
+/** "點亮時間：YYYY-MM-DD HH:MM:SS TZ" in the viewer's local time zone. Prefers
+ *  the time baked into the blob (data.litAt, epoch ms); falls back to the
+ *  ?t=<epoch ms> query (older app builds / already-saved lanterns). Returns ''
+ *  when neither is present/valid. */
+function lightUpTimeLine(litAtMs) {
+  let ms = Number.isFinite(litAtMs) ? litAtMs : NaN;
+  if (!Number.isFinite(ms) || ms <= 0) ms = parseInt(new URLSearchParams(location.search).get('t') || '', 10);
   if (!Number.isFinite(ms) || ms <= 0) return '';
   const d = new Date(ms);
   if (isNaN(d.getTime())) return '';
@@ -544,7 +559,7 @@ async function renderLantern(encoded) {
   // Light-up time (點亮時間) — passed as ?t=<epoch ms> in the share URL (the
   // blob lives in the fragment; this metadata rides the query). Rendered in the
   // VIEWER's local time zone, smaller + grey, below the message.
-  const litLine = lightUpTimeLine();
+  const litLine = lightUpTimeLine(data.litAt);
   stage.innerHTML =
     '<div class="card" style="padding:18px 14px 26px;">' +
     '<canvas id="lantern-canvas" style="width:100%;max-width:420px;border-radius:12px;' +
