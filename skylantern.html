@@ -512,13 +512,10 @@ function loadThree() {
   return threeModules;
 }
 
-/** "點亮時間：YYYY-MM-DD HH:MM:SS TZ" in the viewer's local time zone. Prefers
- *  the time baked into the blob (data.litAt, epoch ms); falls back to the
- *  ?t=<epoch ms> query (older app builds / already-saved lanterns). Returns ''
- *  when neither is present/valid. */
+/** "點亮時間：YYYY-MM-DD HH:MM:SS TZ" in the viewer's local time zone, from the
+ *  time baked into the blob (data.litAt, epoch ms). Returns '' when absent. */
 function lightUpTimeLine(litAtMs) {
-  let ms = Number.isFinite(litAtMs) ? litAtMs : NaN;
-  if (!Number.isFinite(ms) || ms <= 0) ms = parseInt(new URLSearchParams(location.search).get('t') || '', 10);
+  const ms = Number.isFinite(litAtMs) ? litAtMs : NaN;
   if (!Number.isFinite(ms) || ms <= 0) return '';
   const d = new Date(ms);
   if (isNaN(d.getTime())) return '';
@@ -556,8 +553,7 @@ async function renderLantern(encoded) {
   const wishLine = caption
     ? '<p style="font-size:18px;color:var(--red-deep);letter-spacing:.12em;margin-top:14px;">' + caption.replace(/[<>&]/g, '') + '</p>'
     : '';
-  // Light-up time (點亮時間) — passed as ?t=<epoch ms> in the share URL (the
-  // blob lives in the fragment; this metadata rides the query). Rendered in the
+  // Light-up time (點亮時間) — baked into the blob (data.litAt). Rendered in the
   // VIEWER's local time zone, smaller + grey, below the message.
   const litLine = lightUpTimeLine(data.litAt);
   stage.innerHTML =
