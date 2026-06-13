@@ -3,6 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<!-- Google Analytics (gtag.js) — GA4 web data stream (property just-well-442501-m0) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-6TQXN18RGX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-6TQXN18RGX');
+</script>
 <title>心誠則靈 — 分享內容</title>
 <meta name="description" content="檢視來自心誠則靈 App 的分享內容。" />
 <!-- Shared links carry personal content in the fragment — keep them out of search. -->
@@ -265,9 +274,11 @@ function decodeLanternBlob(encoded) {
       texts.push({ face: (fc >> 6) & 3, color: fc & 63, direction, u, v, size, text });
     }
   }
-  // message (v3+); v1/v2 have none
+  // message (v3+); v1/v2 have none. The encoder writes the message block for
+  // every version >= 3 (incl. v4/v5), so read it for all of them — gating on
+  // `=== 3` silently dropped messages on v4/v5 lanterns.
   let message = '';
-  if (version === 3) {
+  if (version >= 3) {
     if (i + 2 > body.length) return null;
     const msgLen = (body[i] << 8) | body[i + 1];
     i += 2;
